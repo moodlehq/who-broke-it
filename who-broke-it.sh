@@ -1,9 +1,4 @@
-who-broke-it
-============
-
-Finds which commit is breaking "something", where something can be a test suite, script...
-
-Copied from who-broke-it.sh documentation block:
+#!/bin/bash
 
 ##
 # Checks that the current branch doesn't contain regressions.
@@ -31,3 +26,32 @@ Copied from who-broke-it.sh documentation block:
 #   $2 => The last good revision we know of, usually latest weekly.
 ##
 
+set -e
+
+# Hardcoded strings.
+usageinfo="Usage ./who-broke-it.sh SCRIPTNAME LASTGOODHASH"
+
+if [ -z $1 ]; then
+    echo "Error: $usageinfo"
+    exit 1
+fi
+if [ -z $2 ]; then
+    echo "Error: $usageinfo"
+    exit 1
+fi
+
+# Run the tests.
+. $1
+if [ -z $failed ]; then
+    echo "Tests passed."
+    exit 0
+fi
+
+# If they fail we bisect until we find where they fail.
+git bisect start HEAD $2
+
+# The argument informs the script that it should fail.
+git bisect run $1 1
+
+# Return to the original HEAD.
+git bisect reset
