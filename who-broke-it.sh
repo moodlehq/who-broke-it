@@ -19,7 +19,7 @@
 #
 # Usage:
 #   cd /current/working/directory
-#   ./who-broke-it.sh SCRIPTNAME LASTGOODHASH
+#   ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH
 #
 # Arguments:
 #   $1 => The name of the script that we are testing against the codebase
@@ -29,7 +29,7 @@
 set -e
 
 # Hardcoded strings.
-usageinfo="Usage ./who-broke-it.sh SCRIPTNAME LASTGOODHASH"
+usageinfo="Usage ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH"
 
 if [ -z $1 ]; then
     echo "Error: $usageinfo"

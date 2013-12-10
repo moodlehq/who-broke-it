@@ -6,7 +6,10 @@
 # It will be called by who-broke-it.sh.
 # 
 # Info:
-#   - Moodle's dirroot contains the codebase and a filled config.php.
+#   - Moodle's dirroot contains the codebase and a config.php with:
+#     * $CFG->behat_dataroot
+#     * $CFG->behat_prefix
+#     * $CFG->behat_switchcompletely or $CFG->behat_wwwroot
 #   - Selenium or phantomjs is already started.
 # 
 # Arguments:
@@ -31,8 +34,8 @@ if [ -z "$behatrunner" ]; then
     exit 1
 fi
 
-# Run behat stopping on failures, want to detect the first one and run again against the next revision.
-# We set $failed because we need to continue in bisect_wrapper.sh until we find the issue.
+# Run behat stopping on failures, we want to detect the first one and run again against the next revision.
+# We set $failed because we need to continue in who-broke-it.sh until we find the issue.
 behatfullcommand="$behatrunner --stop-on-failure"
 echo $behatfullcommand;
 ${behatrunner} || behatexitcode="$?"; 
@@ -41,6 +44,6 @@ if [ "$behatexitcode" != "0" ] && [ "$behatexitcode" != "" ];
 fi
 
 # Exit returning behat's error code as bisect run needs it.
-if [ ! -z $1 ]; then
+if [ "$1" == "1" ]; then
     exit $behatexitcode
 fi

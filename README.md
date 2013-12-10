@@ -23,7 +23,7 @@ Copied from who-broke-it.sh documentation block:
 
     Usage:
       cd /current/working/directory
-      ./who-broke-it.sh SCRIPTNAME LASTGOODHASH
+      ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH
 
     Arguments:
       $1 => The name of the script that we are testing against the codebase
@@ -37,4 +37,4 @@ Installation & Usage
 * Ensure that you set properly whatever is required in config.php to run
   the script you want to run.
 * Ensure HEAD is pointing where you want
-* Run who-broke-it.sh SCRIPT_NAME.sh LAST_GOOD_KNOWN_GIT_HASH
+* Run ./who-broke-it.sh ./SCRIPT_NAME.sh LAST_GOOD_KNOWN_GIT_HASH
