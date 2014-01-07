@@ -33,9 +33,10 @@ php admin/tool/phpunit/cli/init.php > /dev/null
 # Run phpunit stopping on failures, we want to detect the first one and run again against the next revision.
 # We set $failed because we need to continue in who-broke-it.sh until we find the issue.
 echo $phpunitcommand
-${phpunitcommand} || exitcode="$?";
-if [ "$exitcode" != "0" ] && [ "$exitcode" != "" ];
-    then failed=1;
+exitcode=0
+if ${phpunitcommand}; then
+    exitcode=$?
+    failed=1
 fi
 
 # Exit returning behat's error code as bisect run needs it.

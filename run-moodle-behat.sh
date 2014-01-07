@@ -37,13 +37,14 @@ fi
 # Run behat stopping on failures, we want to detect the first one and run again against the next revision.
 # We set $failed because we need to continue in who-broke-it.sh until we find the issue.
 behatfullcommand="$behatrunner --stop-on-failure"
+exitcode=0
 echo $behatfullcommand;
-${behatrunner} || behatexitcode="$?"; 
-if [ "$behatexitcode" != "0" ] && [ "$behatexitcode" != "" ];
-    then failed=1;
+if ${behatrunner}; then
+    exitcode=$?
+    failed=1
 fi
 
 # Exit returning behat's error code as bisect run needs it.
 if [ "$1" == "1" ]; then
-    exit $behatexitcode
+    exit $exitcode
 fi
