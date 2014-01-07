@@ -40,6 +40,11 @@ if [ -z $2 ]; then
     exit 1
 fi
 
+if [ ! -f $1 ]; then
+    echo "Error: $1 does not exist"
+    exit 1
+fi
+
 # Run the tests.
 . $1
 if [ -z $failed ]; then
@@ -52,6 +57,7 @@ git bisect start HEAD $2
 
 # The argument informs the script that it should fail.
 git bisect run $1 1
+echo "YOU CAN SEE WHO BROKE IT IN THE COMMIT ABOVE"
 
 # Return to the original HEAD.
 git bisect reset
