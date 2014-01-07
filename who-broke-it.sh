@@ -3,18 +3,21 @@
 ##
 # Checks that the current branch doesn't contain regressions.
 #
-# Runs the provided script and, if it fails, runs git bisect from
-# HEAD to the latest known good revision until it finds which
-# commit is introducing a regression.
+# Runs the provided script and, if it fails, gets the failed test and
+# runs git bisect from HEAD to the latest known good revision until
+# it finds which commit is introducing the regression.
 #
 # This script make use of subscripts to know if a revision is "good"
-# or "bad". Info about how to write these scripts:
+# or "bad" and to determine what is failing.
+#
+# Info about how to write these scripts:
 # - By default they should not return any exit code, but they can
 #   fail (and in fact should fail) if there is any internal problem.
-# - Git bisect expects an exit code, this script calls the sub-script
-#   with a single argument with value 1, so they should include a:
-#     if [ ! -z $1 ]; then
-#         exit $subscriptexitcode
+# - Git bisect expects an error exit code between 1 and 127, this script
+#   calls the sub-script with a single argument with value 1, so
+#   they should include a:
+#     if [ "$1" == "1" ]; then
+#         exit 1
 #     fi
 #
 # Usage:
