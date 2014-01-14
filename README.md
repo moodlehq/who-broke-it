@@ -19,7 +19,7 @@ Copied from who-broke-it.sh documentation block:
        fail (and in fact should fail) if there is any internal problem.
      - Git bisect expects an error exit code between 1 and 127, this script
        calls the sub-script with a single argument with value 1, so
-       they should include a:
+       when the sub-script is failing (exit != 0) they should include a:
          if [ "$1" == "1" ]; then
              exit 1
          fi
