@@ -60,7 +60,12 @@ fi
 
 # Exit returning behat's error code as bisect run needs it.
 if [ "$1" == "1" ]; then
-    # Returning generic error exit code as git bisect only accepts codes
-    # between 1 and 127 (excluding 125) so we need to control script's return.
-    exit 1
+
+    if [ "$failed" == "1" ]; then
+        # Returning generic error exit code as git bisect only accepts codes
+        # between 1 and 127 (excluding 125) so we need to control script's return.
+        exit 1
+    else
+        exit 0
+    fi
 fi
