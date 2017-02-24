@@ -22,11 +22,20 @@ set -e
 behatcommand='vendor/bin/behat'
 
 # Upgrade behat site and update composer dependencies if necessary.
-echo "UPGRADING TEST SITE..."
-php admin/tool/behat/cli/init.php > /dev/null
+if [ -n "$suite" ]; then
+    echo "UPGRADING TEST SITE... and using suite $suite"
+    php admin/tool/behat/cli/init.php -a=$suite> /dev/null 2>&1
+else
+    echo "UPGRADING TEST SITE..."
+    php admin/tool/behat/cli/init.php> /dev/null 2>&1
+fi
 
 # Only to get the command, separated from the former one as we want proper output.
-behatrunner=$( php admin/tool/behat/cli/util.php --enable | grep $behatcommand | sed 's/^ *//g' )
+if [ -n "$suite" ]; then
+    behatrunner=$( php admin/tool/behat/cli/util.php --enable -a=$suite | grep $behatcommand | sed 's/^ *//g' )
+else
+    behatrunner=$( php admin/tool/behat/cli/util.php --enable | grep $behatcommand | sed 's/^ *//g' )
+fi
 
 # Check that we got the command (means that enable works as expected
 # too, so many checks already been done).
@@ -39,29 +48,36 @@ fi
 # We set $failed because we need to continue in who-broke-it.sh until we find the issue.
 behatfullcommand="$behatrunner --stop-on-failure"
 
+if [ -n "$suite" ]; then
+    behatfullcommand="$behatfullcommand --suite=$suite"
+fi
+
 # If there is already a failed scenario we only run that one.
 if [ "$failedscenario" != "" ]; then
     behatfullcommand="$behatfullcommand $failedscenario"
 fi
 
 echo "RUNNING $behatfullcommand"
-if ! behatoutput=$( ${behatfullcommand} ); then
+behatoutput=$( ${behatfullcommand} )
 
-    failed=1
+export failed=$?
+if [ $failed -ne 0 ]; then
 
     # Get the name of the failed scenario.
     # We clean from the # where the file name begins until the : which
     # informs about the line number.
-    line=$( echo "$behatoutput" | grep "From scenario " )
-    failedscenario=${line#*# }
-    export failedscenario=${failedscenario%:*}
-    echo "FAILED SCENARIO: $failedscenario"
+    if [ -z "$failedscenario" ]; then
+        failedscenario=${behatoutput#* # }
+        failedscenario=${failedscenario%.feature:*}
+        failedscenario=${failedscenario%.feature:*}
+        export failedscenario2=${failedscenario}.feature
+        echo "FAILED SCENARIO: $failedscenario"
+    fi
 fi
 
-# Exit returning behat's error code as bisect run needs it.
 if [ "$1" == "1" ]; then
 
-    if [ "$failed" == "1" ]; then
+    if [ $failed -ne 0 ]; then
         # Returning generic error exit code as git bisect only accepts codes
         # between 1 and 127 (excluding 125) so we need to control script's return.
         exit 1
@@ -69,3 +85,4 @@ if [ "$1" == "1" ]; then
         exit 0
     fi
 fi
+

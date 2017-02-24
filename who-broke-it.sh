@@ -22,17 +22,19 @@
 #
 # Usage:
 #   cd /current/working/directory
-#   ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH
+#   ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH [FAILEDSCENARIO] [SUITE]
 #
 # Arguments:
 #   $1 => The name of the script that we are testing against the codebase
 #   $2 => The last good revision we know of, usually latest weekly.
+#   $3 => (optional) Failed feature relative path.
+#   $4 => (optional) Behat suite to execute.
 ##
 
 set -e
 
 # Hardcoded strings.
-usageinfo="Usage ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH"
+usageinfo="Usage ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH [FAILEDSCENARIO] [SUITE]"
 
 if [ -z $1 ]; then
     echo "Error: $usageinfo"
@@ -43,6 +45,21 @@ if [ -z $2 ]; then
     exit 1
 fi
 
+if [ -n "$failedscenario" ]; then
+    echo "Checking who broke $failedscenario"
+elif [[ -z $3 ]]; then
+    echo "Going to find the failed now."
+else
+    ROOT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+    export failedscenario=${ROOT_DIR}/$3
+    export failedtest=${ROOT_DIR}/$3
+    echo "Checking who broke $failedscenario"
+fi
+
+if [[ -n $4 ]]; then
+    export suite=$4
+fi
+
 if [ ! -f $1 ]; then
     echo "Error: $1 does not exist"
     exit 1
@@ -50,15 +67,16 @@ fi
 
 # Run the tests.
 . $1
-if [ -z $failed ]; then
-    echo "Tests passed."
+if [ $failed -eq 0 ]; then
+    echo "No failures found in head. Please check branch."
     exit 0
+else
+    echo "Checking who broke my test..."
 fi
 
 # If they fail we bisect until we find where they fail.
 git bisect start HEAD $2
 
-# The argument informs the script that it should fail.
 git bisect run $1 1
 echo "YOU CAN SEE WHO BROKE IT IN THE COMMIT ABOVE"
 
