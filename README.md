@@ -26,11 +26,13 @@ Copied from who-broke-it.sh documentation block:
 
      Usage:
        cd /current/working/directory
-       ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH
+       ./who-broke-it.sh ./SCRIPTNAME LASTGOODHASH [FAILEDSCENARIO] [SUITE]
 
      Arguments:
        $1 => The name of the script that we are testing against the codebase
        $2 => The last good revision we know of, usually latest weekly.
+       $3 => (optional) Failed feature relative path.
+       $4 => (optional) Behat suite to execute.
 
 
 Installation & Usage
@@ -56,5 +58,5 @@ $CFG->behat_wwwroot = 'http://yourip/your/site/path';
 * Run it
 
 ```
-./who-broke-it.sh ./SCRIPT_NAME.sh LAST_GOOD_KNOWN_GIT_HASH
+./who-broke-it.sh ./SCRIPT_NAME.sh LAST_GOOD_KNOWN_GIT_HASH [FAILEDSCENARIO] [SUITE]
 ```
