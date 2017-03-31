@@ -4,48 +4,63 @@
 # Simple script to run CWD site behat tests.
 #
 # It will be called by who-broke-it.sh.
-# 
+#
 # Info:
 #   - Moodle's dirroot contains the codebase and a config.php with:
 #     * $CFG->behat_dataroot
 #     * $CFG->behat_prefix
 #     * $CFG->behat_switchcompletely or $CFG->behat_wwwroot
 #   - Selenium or phantomjs is already started.
-# 
+#
 # Arguments:
-#   $1 => Whether we should return an exit code after finishing.
+#   $1 => When called through git bisect (== 1) whether we should return an
+#   exit code after finishing.
 ##
 
 set -e
 
+returnexitcode=$1
+
 # Hardcoded vars.
 behatcommand='vendor/bin/behat'
 
+# $extraarg var is the suite in run-moodle-behat context.
+suite=$extraarg
+
 # Upgrade behat site and update composer dependencies if necessary.
 if [ -n "$suite" ]; then
-    echo "UPGRADING TEST SITE... and using suite $suite"
-    php admin/tool/behat/cli/init.php -a=$suite> /dev/null 2>&1
+    echo "** Upgrading test site using suite $suite **"
+    if ! $( php admin/tool/behat/cli/init.php -a=$suite > /dev/null ); then
+        echo "Error: Test site can not be upgraded"
+        exit 1
+    fi
 else
-    echo "UPGRADING TEST SITE..."
-    php admin/tool/behat/cli/init.php> /dev/null 2>&1
+    echo "** Upgrading test site... **"
+    if ! $( php admin/tool/behat/cli/init.php > /dev/null ); then
+        echo "Error: Test site can not be upgraded"
+        exit 1
+    fi
 fi
 
 # Only to get the command, separated from the former one as we want proper output.
 if [ -n "$suite" ]; then
-    behatrunner=$( php admin/tool/behat/cli/util.php --enable -a=$suite | grep $behatcommand | sed 's/^ *//g' )
+    behatrunner=$( php admin/tool/behat/cli/util.php --enable -a=$suite | \
+        grep $behatcommand | sed 's/^ *//g' )
 else
-    behatrunner=$( php admin/tool/behat/cli/util.php --enable | grep $behatcommand | sed 's/^ *//g' )
+    behatrunner=$( php admin/tool/behat/cli/util.php --enable | \
+        grep $behatcommand | sed 's/^ *//g' )
 fi
 
 # Check that we got the command (means that enable works as expected
 # too, so many checks already been done).
 if [ -z "$behatrunner" ]; then
-    echo "Error: The site should be initialized and ready to test, and it is not."
+    echo "Error: The site should be initialized and ready to test, it is not."
     exit 1
 fi
 
-# Run behat stopping on failures, we want to detect the first one and run again against the next revision.
-# We set $failed because we need to continue in who-broke-it.sh until we find the issue.
+# Run behat stopping on failures, we want to detect the first one and run
+# again against the next revision. We set $failed because we need to continue
+# in who-broke-it.sh until we find the issue.
 behatfullcommand="$behatrunner --stop-on-failure"
 
 if [ -n "$suite" ]; then
@@ -53,31 +68,41 @@ if [ -n "$suite" ]; then
 fi
 
 # If there is already a failed scenario we only run that one.
-if [ "$failedscenario" != "" ]; then
-    behatfullcommand="$behatfullcommand $failedscenario"
+if [ "$failedtest" != "" ]; then
+    behatfullcommand="$behatfullcommand $failedtest"
 fi
 
-echo "RUNNING $behatfullcommand"
-behatoutput=$( ${behatfullcommand} )
+echo "** Running $behatfullcommand **"
+if ! behatoutput=$( ${behatfullcommand} ); then
 
-export failed=$?
-if [ $failed -ne 0 ]; then
+    # Flag the test as failed.
+    failed=1
 
-    # Get the name of the failed scenario.
+    # Get the name of the failed .feature file from the output.
     # We clean from the # where the file name begins until the : which
     # informs about the line number.
-    if [ -z "$failedscenario" ]; then
-        failedscenario=${behatoutput#* # }
-        failedscenario=${failedscenario%.feature:*}
-        failedscenario=${failedscenario%.feature:*}
-        export failedscenario2=${failedscenario}.feature
-        echo "FAILED SCENARIO: $failedscenario"
+    failedfeature=${behatoutput#* # }
+    failedfeature=${failedfeature%.feature:*}
+    failedfeature=${failedfeature%.feature:*}
+    failedfeature=$failedfeature'.feature'
+
+    if [ ! -f "$failedfeature" ]; then
+        # Can't get the feature file path.
+        echo "** Failed feature name could not be determined **"
+        echo "** \$failedtest not modified **"
+        echo "$failedfeature"
+    else
+        export failedtest=$failedfeature
+        echo "** Failed test: $failedtest **"
     fi
+
 fi
 
-if [ "$1" == "1" ]; then
+# Using == "1" instead of just a '! -z' as $1 can also be who-broke-it.sh
+# first argument.
+if [ "$returnexitcode" == "1" ]; then
 
-    if [ $failed -ne 0 ]; then
+    if [ "$failed" == "1" ]; then
         # Returning generic error exit code as git bisect only accepts codes
         # between 1 and 127 (excluding 125) so we need to control script's return.
         exit 1
@@ -85,4 +110,3 @@ if [ "$1" == "1" ]; then
         exit 0
     fi
 fi
-

@@ -11,10 +11,16 @@
 #     * $CFG->phpunit_prefix
 #
 # Arguments:
-#   $1 => Whether we should return an exit code after finishing.
+#   $1 => When called through git bisect (== 1) whether we should return an
+#   exit code after finishing.
+#
+# Failed test:
+#   testcase filepath (e.g. core_demo_testcase lib/tests/demo_test.php)
 ##
 
 set -e
+
+returnexitcode=$1
 
 # Hardcoded vars.
 phpunitcommand='vendor/bin/phpunit'
@@ -28,32 +34,38 @@ else
 fi
 
 # Upgrade phpunit site.
-echo "UPGRADING TEST SITE..."
-php admin/tool/phpunit/cli/init.php > /dev/null
+echo "** Upgrading test site... **"
+if ! $( php admin/tool/phpunit/cli/init.php > /dev/null ); then
+    echo "Error: Test site can not be upgraded"
+    exit 1
+fi
 
-# Run phpunit stopping on failures, we want to detect the first one and run again against the next revision.
-# We set $failed because we need to continue in who-broke-it.sh until we find the issue.
+# Run phpunit stopping on failures. We want to detect the first failure and
+# continue running against the next revision.
 phpunitfullcommand="$phpunitcommand --stop-on-failure"
 
 # If there is already a failed test we only run that one.
 if [ "$failedtest" != "" ]; then
     phpunitfullcommand="$phpunitfullcommand $failedtest"
+else
+    phpunitfullcommand="$phpunitfullcommand mod/lesson/tests/lib_test.php"
 fi
 
-echo "RUNNING $phpunitfullcommand"
+echo "** Running $phpunitfullcommand **"
 if ! phpunitoutput=$( ${phpunitfullcommand} ); then
 
+    # Flag the test as failed.
     failed=1
 
     # Get the proposed re-run test which contains the failed file
     line=$( echo "$phpunitoutput" | grep "vendor/bin/phpunit" | sed 's/^ *//g' )
     export failedtest=$( echo "$line" | awk '{print $2,$3}' )
-    echo "FAILED TEST: $failedtest"
-
+    echo "** Failed test: $failedtest **"
 fi
 
-# Exit returning behat's error code as bisect run needs it.
-if [ "$1" == "1" ]; then
+# Using == "1" instead of just a '! -z' as $1 can also be who-broke-it.sh
+# first argument.
+if [ "$returnexitcode" == "1" ]; then
 
     if [ "$failed" == "1" ]; then
         # Returning generic error exit code as git bisect only accepts codes
