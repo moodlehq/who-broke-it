@@ -79,20 +79,18 @@ if ! behatoutput=$( ${behatfullcommand} ); then
     failed=1
 
     # Get the name of the failed .feature file from the output.
-    # We clean from the # where the file name begins until the : which
-    # informs about the line number.
-    failedfeature=${behatoutput#* # }
-    failedfeature=${failedfeature%.feature:*}
-    failedfeature=${failedfeature%.feature:*}
-    failedfeature=$failedfeature'.feature'
+    regex="\# +([^:]*.feature)"
+    if [[ $behatoutput =~ $regex ]]; then
+        featurefile=${BASH_REMATCH[1]}
+    fi
 
-    if [ ! -f "$failedfeature" ]; then
+    if [ ! -f "$featurefile" ]; then
         # Can't get the feature file path.
-        echo "** Failed feature name could not be determined **"
-        echo "** \$failedtest not modified **"
-        echo "$failedfeature"
+        echo "** Failed feature file could not be extracted from the failure \
+output. Next bisect iteration will use the same command that has been used now \
+**"
     else
-        export failedtest=$failedfeature
+        export failedtest=$featurefile
         echo "** Failed test: $failedtest **"
     fi
 
@@ -104,7 +102,8 @@ if [ "$returnexitcode" == "1" ]; then
 
     if [ "$failed" == "1" ]; then
         # Returning generic error exit code as git bisect only accepts codes
-        # between 1 and 127 (excluding 125) so we need to control script's return.
+        # between 1 and 127 (excluding 125) so we need to control script's
+        # return.
         exit 1
     else
         exit 0
