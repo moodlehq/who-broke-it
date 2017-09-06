@@ -47,8 +47,6 @@ phpunitfullcommand="$phpunitcommand --stop-on-failure"
 # If there is already a failed test we only run that one.
 if [ "$failedtest" != "" ]; then
     phpunitfullcommand="$phpunitfullcommand $failedtest"
-else
-    phpunitfullcommand="$phpunitfullcommand mod/lesson/tests/lib_test.php"
 fi
 
 echo "** Running $phpunitfullcommand **"
